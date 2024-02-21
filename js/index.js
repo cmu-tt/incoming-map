@@ -83,6 +83,7 @@ async function initMap() {
     zoom: 4,
     center: cmuLatLng,
     mapId: "cmu-admit-map",
+    streetViewControl: false,
   });
   // CMU Marker
   void new google.maps.marker.AdvancedMarkerElement({
@@ -91,43 +92,14 @@ async function initMap() {
     content: $('<div class="cmu_marker student_marker">CMU</div>').get(0),
   });
 
+  //   // Load & setup all other markers
+  //   // TODO: Get markers from server
+  //   data.forEach((student) => {
+  //     setupMarker(map, student.latLng, student.name, student.detail, student.place);
+  //   });
+
   // Marker Create Listener
-  map.addListener("click", function (e) {
-    // Only work in add mode
-    if (!addMode) return;
-
-    /* Get Details for Marker */
-    // get location
-    userLatLng = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-    // get username
-    if (!userName && !add_name()) return;
-    // get user detail
-    if (!userDetail && !add_details()) return;
-    // remove old marker
-    if (userMarker) userMarker.setMap(null);
-
-    // get city name
-    geocoder.geocode({ location: userLatLng }, (results, status) => {
-      let place;
-      if (status === google.maps.GeocoderStatus.OK) {
-        if (results[0]) {
-          // get City, State (if applicable), Country via administrative_area_level_1 and locality
-          const reigion = results[0].address_components
-            .filter((component) => component.types.includes("administrative_area_level_1"))
-            .map((component) => component.long_name)
-            .join(", ");
-          const locality = results[0].address_components
-            .filter((component) => component.types.includes("locality"))
-            .map((component) => component.long_name)
-            .join(", ");
-          place = [locality, reigion].filter(Boolean).join(", ");
-        }
-      }
-      /* Create Marker */
-      add_place(place);
-      mark_changed(true);
-    });
-  });
+  setupEditListener(map, geocoder);
 }
 
 function setupMarker(map, latLng, name, detail, place) {
@@ -174,4 +146,43 @@ function toggleMarker(marker) {
   $(marker.content).toggleClass("student_content__hidden");
   // remove all other
   $(".student_marker").not(marker.content).addClass("student_content__hidden");
+}
+
+function setupEditListener(map, geocoder) {
+  map.addListener("click", function (e) {
+    // Only work in add mode
+    if (!addMode) return;
+
+    /* Get Details for Marker */
+    // get location
+    userLatLng = e.latLng.toJSON();
+    // get username
+    if (!userName && !add_name()) return;
+    // get user detail
+    if (!userDetail && !add_details()) return;
+    // remove old marker
+    if (userMarker) userMarker.setMap(null);
+
+    // get city name
+    geocoder.geocode({ location: userLatLng }, (results, status) => {
+      let place;
+      if (status === google.maps.GeocoderStatus.OK) {
+        if (results[0]) {
+          // get City, State (if applicable), Country via administrative_area_level_1 and locality
+          const reigion = results[0].address_components
+            .filter((component) => component.types.includes("administrative_area_level_1"))
+            .map((component) => component.long_name)
+            .join(", ");
+          const locality = results[0].address_components
+            .filter((component) => component.types.includes("locality"))
+            .map((component) => component.long_name)
+            .join(", ");
+          place = [locality, reigion].filter(Boolean).join(", ");
+        }
+      }
+      /* Create Marker */
+      add_place(place);
+      mark_changed(true);
+    });
+  });
 }

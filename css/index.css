@@ -21,12 +21,14 @@ body {
 .student_marker {
   background-color: var(--marker-color);
   border-radius: 8px;
-  color: #ffffff;
+  color: #fff;
   font-size: 14px;
   padding: 10px 15px;
   position: relative;
+  overflow-wrap: anywhere;
   margin-bottom: 4px;
 }
+
 .cmu_marker {
   --marker-color: var(--cmu-color);
   font-weight: bold;
