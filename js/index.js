@@ -90,6 +90,7 @@ async function save_changes() {
       detail: user.detail,
       latLng: user.latLng,
       place: user.place,
+      updated: Date.now(),
     });
     console.log("✅ Saved to server");
     $("#edit_delete").show();
