@@ -6,14 +6,14 @@ console.log(
 );
 
 // Constants
-
 const cmuLatLng = { lat: 40.443336, lng: -79.944023 };
+var geocoder;
 
 // Vars: Map & Markers
-var markers = [];
 var active;
 var map;
 // Vars: User
+var user_before;
 var user = {
   latLng: {},
   name: localStorage.getItem("userName"),
@@ -30,13 +30,28 @@ var addChanged = false;
 $("#edit_name").click(add_name);
 $("#edit_detail").click(() => add_details(true));
 $("#toggle_place_mode").click(save_changes);
+$("#discard_place").click(discard_changes);
+$("#edit_delete").click(() => {
+  if (confirm("Are you sure you want to delete your marker?")) {
+    removeMarker(user.marker);
+    students.doc(user.uid).delete();
+    user.marker = null;
+    user.place = null;
+    user.latLng = null;
+  }
+  $("#edit_delete").hide();
+  addChanged = false;
+  mark_changed(false);
+  $("#discard_place").hide();
+});
 
-// Name and Details
+// Handlers for changing user fields
 function add_details(require = false) {
   if (!require && promptedDetails) return user.detail;
   let after = prompt("Tell us a little about yourself");
   promptedDetails = true;
-  if (user.detail === after) return alert("Detail is already set to " + after) && user.detail;
+  if (user.detail === after)
+    return after && alert("Detail is already set to " + after) && user.detail;
   user.detail = after;
   mark_changed(true);
   return user.detail;
@@ -53,27 +68,40 @@ function add_place(place) {
   user.place = place;
   mark_changed(true);
 }
-
+// Handle Edit Mode & Changes
 function mark_changed(changed) {
   addChanged = changed;
   if (changed) {
     if (user.marker) removeMarker(user.marker);
     user.marker = setupMarker(map, user);
   }
+  $("#discard_place").toggle(!!changed);
   $("#toggle_place_mode").text(changed ? "Save Changes" : "Exit Edit");
 }
-function save_changes() {
+// Server Save
+async function save_changes() {
   if (addChanged) {
-    localStorage.setItem("userName", userName);
-    localStorage.setItem("userDetail", userDetail);
-    // TODO: Save to server
-    console.log("Saving to server...");
+    localStorage.setItem("userName", user.name);
+    localStorage.setItem("userDetail", user.detail);
+    // Save to server
+    console.log("⏫ Saving to server");
+    await students.doc(user.uid).set({
+      name: user.name,
+      detail: user.detail,
+      latLng: user.latLng,
+      place: user.place,
+    });
+    console.log("✅ Saved to server");
+    $("#edit_delete").show();
   }
   mark_changed(false);
+  // Exit Add Mode
   addMode = !addMode;
   $("#toggle_place_mode").text(addMode ? "Exit Add/Edit" : "Add/Edit");
+  if (addMode && !user.marker) {
+    alert("Click on the map to add your marker");
+  }
   $("#controls_wrapper").toggleClass("add_place", addMode);
-  // Collapse all Markers
   if (addMode) $(".student_marker").addClass("student_content__hidden");
 }
 
@@ -83,7 +111,7 @@ async function initMap() {
 
   await google.maps.importLibrary("maps");
   await google.maps.importLibrary("marker");
-  const geocoder = new google.maps.Geocoder();
+  geocoder = new google.maps.Geocoder();
 
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 4,
@@ -97,43 +125,72 @@ async function initMap() {
     map: map,
     content: $('<div class="cmu_marker student_marker">CMU</div>').get(0),
   });
+}
+async function initMarkers() {
+  // Load & setup all other markers
+  console.log("⏬ Loading markers from server");
+  let data = await students.get();
+  console.log("✅ Loaded markers from server");
+  data.forEach((doc) => {
+    let is_user = doc.id === auth.currentUser.uid;
+    if (is_user) {
+      console.log("👤 Found existing user marker from server");
+      user = {
+        uid: doc.id,
+        ...user,
+        ...doc.data(),
+      };
+      user_before = { ...user };
+      $("#edit_delete").show();
+    }
+    setupMarker(
+      map,
+      is_user
+        ? user
+        : {
+            uid: doc.id,
+            ...doc.data(),
+          }
+    );
+  });
 
-  //   // Load & setup all other markers
-  //   // TODO: Get markers from server
-  //   data.forEach((student) => {
-  //     setupMarker(map, student);
-  //   });
+  console.log("📍 Setup all markers");
 
   // Marker Create Listener
   setupEditListener(map, geocoder);
 }
 
 function setupMarker(map, obj) {
-  let marker = new google.maps.marker.AdvancedMarkerElement({
-    position: obj.latLng,
-    map: map,
-    content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area"),
-  });
-  marker.addListener("click", function () {
-    toggleMarker(marker);
-  });
-  markers.push(marker);
-  return marker;
-}
-
-function removeNamedMarker(name) {
-  let marker = markers.reverse().find((m) => $(m.content).find(".student_name").text() === name);
-  if (marker) return removeMarker(marker);
+  // check that fields are valid, if not warn
+  if (!obj.latLng || !obj.name) {
+    console.log("📍 %cInvalid Marker Object", "color: orange", obj);
+    return;
+  }
+  // Setup marker
+  try {
+    let marker = new google.maps.marker.AdvancedMarkerElement({
+      position: obj.latLng,
+      map: map,
+      content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area"),
+    });
+    obj.marker = marker;
+    marker.addListener("click", function () {
+      toggleMarker(marker);
+    });
+    return marker;
+  } catch (e) {
+    console.log("📍 %cError creating marker from obj", "color: red", obj, e);
+  }
 }
 
 function removeMarker(marker) {
+  if (!marker) return console.log("📍 %cNo marker to remove", "color: orange");
   marker.setMap(null);
-  markers = markers.filter((m) => m !== marker);
   return marker;
 }
 
 function makeContent(name, detail, location) {
-  let own = userName == name;
+  let own = user.uid === auth.currentUser.uid;
   name = $("<div>").text(name).html();
   detail = $("<div>").text(detail).html();
   return $(
@@ -152,6 +209,14 @@ function toggleMarker(marker) {
   $(".student_marker").not(marker.content).addClass("student_content__hidden");
 }
 
+function discard_changes() {
+  removeMarker(user.marker);
+  user = { ...user_before };
+  setupMarker(map, user);
+  mark_changed(false);
+  console.log("🛑 Discarded changes");
+}
+
 function setupEditListener(map, geocoder) {
   map.addListener("click", function (e) {
     // Only work in add mode
@@ -163,7 +228,7 @@ function setupEditListener(map, geocoder) {
     // get username
     if (!user.name && !add_name()) return;
     // get user detail
-    if (!user.detail && !add_details(false)) return;
+    void !user.detail && !add_details(false);
     // remove old marker
     if (user.marker) user.marker.setMap(null);
 

@@ -118,7 +118,8 @@ body {
   outline: dashed 4px var(--cmu-color);
   outline-offset: -4px;
 }
-#controls_wrapper button {
+#controls_wrapper button,
+#login_btn {
   /* style */
   border-radius: 5px;
   border: solid 2px var(--cmu-color);
@@ -131,11 +132,29 @@ body {
   cursor: pointer;
 }
 
-#controls_wrapper:not(.add_place) .controls_wrapper__edit_only {
-  display: none;
+#controls_wrapper:not(.add_place) .controls_wrapper__edit_only,
+#controls_wrapper.add_place .controls_wrapper__no_edit {
+  display: none !important;
 }
 
 #controls_wrapper button.secondary {
   background-color: #fff;
   color: var(--cmu-color);
+}
+
+#auth_wrapper {
+  position: fixed;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #00000080;
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#auth_wrapper #login_btn {
+  border-color: #fff;
 }
