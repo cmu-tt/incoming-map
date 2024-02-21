@@ -154,6 +154,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  align-content: flex-end;
 }
 #auth_wrapper #login_btn {
   border-color: #fff;
