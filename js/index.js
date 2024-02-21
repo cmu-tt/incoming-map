@@ -9,50 +9,56 @@ console.log(
 
 const cmuLatLng = { lat: 40.443336, lng: -79.944023 };
 
-// Variables
+// Vars: Map & Markers
 var markers = [];
 var active;
 var map;
 // Vars: User
-var userLatLng = {};
-var userName = localStorage.getItem("userName");
-var userDetail = localStorage.getItem("userDetail");
-var userPlace;
-var userMarker = null;
+var user = {
+  latLng: {},
+  name: localStorage.getItem("userName"),
+  detail: localStorage.getItem("userDetail"),
+  place: null,
+  marker: null,
+};
+var promptedDetails = false;
 // Vars: Edit Mode
 var addMode = false;
 var addChanged = false;
 
-// Edit Mode
+// Buttons Listeners
+$("#edit_name").click(add_name);
+$("#edit_detail").click(() => add_details(true));
 $("#toggle_place_mode").click(save_changes);
 
 // Name and Details
-$("#edit_name").click(add_name);
-$("#edit_detail").click(add_details);
-function add_details() {
+function add_details(require = false) {
+  if (!require && promptedDetails) return user.detail;
   let after = prompt("Tell us a little about yourself");
-  if (!after) return alert("Please enter some details");
-  if (userDetail === after) return alert("Detail is already set to " + after);
-  userDetail = after;
+  promptedDetails = true;
+  if (user.detail === after) return alert("Detail is already set to " + after) && user.detail;
+  user.detail = after;
   mark_changed(true);
+  return user.detail;
 }
 function add_name() {
   let after = prompt("What's your name?");
-  if (!after) return alert("Please enter a name");
-  if (userName === after) return alert("Name is already set to " + after);
-  userName = after;
+  if (!after) return alert("Please enter a name") && false;
+  if (user.name === after) return alert("Name is already set to " + after) && user.name;
+  user.name = after;
   mark_changed(true);
+  return user.name;
 }
 function add_place(place) {
-  userPlace = place;
+  user.place = place;
   mark_changed(true);
 }
 
 function mark_changed(changed) {
   addChanged = changed;
   if (changed) {
-    if (userMarker) removeMarker(userMarker);
-    userMarker = setupMarker(map, userLatLng, userName, userDetail, userPlace);
+    if (user.marker) removeMarker(user.marker);
+    user.marker = setupMarker(map, user);
   }
   $("#toggle_place_mode").text(changed ? "Save Changes" : "Exit Edit");
 }
@@ -95,18 +101,18 @@ async function initMap() {
   //   // Load & setup all other markers
   //   // TODO: Get markers from server
   //   data.forEach((student) => {
-  //     setupMarker(map, student.latLng, student.name, student.detail, student.place);
+  //     setupMarker(map, student);
   //   });
 
   // Marker Create Listener
   setupEditListener(map, geocoder);
 }
 
-function setupMarker(map, latLng, name, detail, place) {
+function setupMarker(map, obj) {
   let marker = new google.maps.marker.AdvancedMarkerElement({
-    position: latLng,
+    position: obj.latLng,
     map: map,
-    content: makeContent(name, detail, place || "Unknown Area"),
+    content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area"),
   });
   marker.addListener("click", function () {
     toggleMarker(marker);
@@ -116,9 +122,7 @@ function setupMarker(map, latLng, name, detail, place) {
 }
 
 function removeNamedMarker(name) {
-  let marker = markers
-    .reverse()
-    .find((m) => m.content.querySelector(".student_name").textContent === name);
+  let marker = markers.reverse().find((m) => $(m.content).find(".student_name").text() === name);
   if (marker) return removeMarker(marker);
 }
 
@@ -155,16 +159,16 @@ function setupEditListener(map, geocoder) {
 
     /* Get Details for Marker */
     // get location
-    userLatLng = e.latLng.toJSON();
+    user.latLng = e.latLng.toJSON();
     // get username
-    if (!userName && !add_name()) return;
+    if (!user.name && !add_name()) return;
     // get user detail
-    if (!userDetail && !add_details()) return;
+    if (!user.detail && !add_details(false)) return;
     // remove old marker
-    if (userMarker) userMarker.setMap(null);
+    if (user.marker) user.marker.setMap(null);
 
     // get city name
-    geocoder.geocode({ location: userLatLng }, (results, status) => {
+    geocoder.geocode({ location: user.latLng }, (results, status) => {
       let place;
       if (status === google.maps.GeocoderStatus.OK) {
         if (results[0]) {
