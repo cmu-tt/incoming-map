@@ -100,10 +100,12 @@ async function save_changes() {
   let addEdit = user.marker ? "Edit" : "Add";
   $("#toggle_place_mode").text(addMode ? `Exit ${addEdit}` : `${addEdit} Marker`);
   $("#controls_wrapper").toggleClass("add_place", addMode);
-  if (addMode) $(".student_marker").addClass("student_content__hidden");
-  if (addMode) $(".own_marker").removeClass("student_content__hidden");
-  if (addMode && !user.marker) {
-    alert("Click on the map to add your marker");
+  $(".student_marker").addClass("student_content__hidden");
+  if (addMode) {
+    $(".own_marker").removeClass("student_content__hidden");
+    if (!user.marker) {
+      alert("Click on the map to add your marker");
+    }
   }
 }
 
