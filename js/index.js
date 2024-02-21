@@ -48,7 +48,7 @@ $("#edit_delete").click(() => {
 // Handlers for changing user fields
 function add_details(require = false) {
   if (!require && promptedDetails) return user.detail;
-  let after = prompt("Tell us a little about yourself");
+  let after = prompt("Tell us a little about yourself", user.detail || "");
   promptedDetails = true;
   if (user.detail === after)
     return after && alert("Detail is already set to " + after) && user.detail;
@@ -101,6 +101,7 @@ async function save_changes() {
   $("#toggle_place_mode").text(addMode ? `Exit ${addEdit}` : `${addEdit} Marker`);
   $("#controls_wrapper").toggleClass("add_place", addMode);
   if (addMode) $(".student_marker").addClass("student_content__hidden");
+  if (addMode) $(".own_marker").removeClass("student_content__hidden");
   if (addMode && !user.marker) {
     alert("Click on the map to add your marker");
   }
@@ -195,6 +196,9 @@ function makeContent(name, detail, location, id) {
   let own = id === auth.currentUser.uid;
   name = $("<div>").text(name).html();
   detail = $("<div>").text(detail).html();
+
+  // allow ewline in detail via \\n (just \n in prompt field)
+  detail = detail.replace(/\\n/g, "<br>");
   return $(
     `<div class="student_marker student_content__hidden ${
       own ? "own_marker" : ""
