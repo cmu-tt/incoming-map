@@ -97,12 +97,13 @@ async function save_changes() {
   mark_changed(false);
   // Exit Add Mode
   addMode = !addMode;
-  $("#toggle_place_mode").text(addMode ? "Exit Add/Edit" : "Add/Edit");
+  let addEdit = user.marker ? "Edit" : "Add";
+  $("#toggle_place_mode").text(addMode ? `Exit ${addEdit}` : `${addEdit} Marker`);
+  $("#controls_wrapper").toggleClass("add_place", addMode);
+  if (addMode) $(".student_marker").addClass("student_content__hidden");
   if (addMode && !user.marker) {
     alert("Click on the map to add your marker");
   }
-  $("#controls_wrapper").toggleClass("add_place", addMode);
-  if (addMode) $(".student_marker").addClass("student_content__hidden");
 }
 
 // Map Handler
@@ -141,6 +142,7 @@ async function initMarkers() {
         ...doc.data(),
       };
       user_before = { ...user };
+      $("#toggle_place_mode").text("Edit Marker");
       $("#edit_delete").show();
     }
     setupMarker(
@@ -171,7 +173,7 @@ function setupMarker(map, obj) {
     let marker = new google.maps.marker.AdvancedMarkerElement({
       position: obj.latLng,
       map: map,
-      content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area"),
+      content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area", obj.uid),
     });
     obj.marker = marker;
     marker.addListener("click", function () {
@@ -189,8 +191,8 @@ function removeMarker(marker) {
   return marker;
 }
 
-function makeContent(name, detail, location) {
-  let own = user.uid === auth.currentUser.uid;
+function makeContent(name, detail, location, id) {
+  let own = id === auth.currentUser.uid;
   name = $("<div>").text(name).html();
   detail = $("<div>").text(detail).html();
   return $(
