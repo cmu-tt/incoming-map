@@ -19,8 +19,6 @@ jobs:
           replace: "${{github.ref_name}}"
           exclude: "**/*.yml"
           regex: false
-      - name: Minify
-        uses: anthonyftwang/minify-action@v1.0.1
       - name: Commit to deployment
         uses: stefanzweifel/git-auto-commit-action@v4
         with:

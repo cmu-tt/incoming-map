@@ -2,7 +2,11 @@
 
 console.log(
   "%c" + "😽ྀིྀི please don't look at the code, thanks 😽ྀིྀི",
-  "text-align:center; background: peachpuff; color: black; padding: 20px 60px; font-family: sans-serif; font-size: 20px; border-radius: 7px;"
+  "text-align:center; background: peachpuff; color: black; padding: 20px 60px; font-family: sans-serif; font-size: 20px; border-radius: 7px"
+);
+console.log(
+  "%cExcept you Max, you can look at the code, there might just be consequences 😈 \n> https://github.com/cmu-tt/incoming-map <",
+  "color: #ff0000; font-size: 10px; font-weight: bold; text-align: center; display: block"
 );
 
 // Constants
