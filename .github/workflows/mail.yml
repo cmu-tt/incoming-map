@@ -1,12 +1,6 @@
 name: Deploy and Minify
 permissions:
   contents: write
-  pull_requests: write
-  issues: write
-  metadata: read
-  security_events: write
-  deployments: write
-  single_file: true
 on:
   release:
     branch: main
