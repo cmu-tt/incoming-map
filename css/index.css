@@ -1,0 +1,139 @@
+/* Theme */
+:root {
+  --cmu-color: #a6192e;
+  --marker-color: #4285f4;
+  --own-color: #0f9d58;
+}
+/* Fullscreen Map */
+#map {
+  height: 100%;
+  z-index: 1;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Student Marker Base */
+.student_marker {
+  background-color: var(--marker-color);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 10px 15px;
+  position: relative;
+  margin-bottom: 4px;
+}
+.cmu_marker {
+  --marker-color: var(--cmu-color);
+  font-weight: bold;
+}
+.own_marker {
+  --marker-color: var(--own-color);
+  font-weight: bold;
+}
+
+.student_marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 0);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--marker-color);
+}
+
+.student_marker .student_name {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.student_content h2 {
+  margin-top: 0;
+}
+
+/* Uncollapsed */
+
+.student_marker:not(.student_content__hidden) {
+  cursor: pointer;
+  max-width: 250px;
+}
+.student_marker:not(.student_content__hidden) .student_name {
+  display: none;
+}
+
+/* Collapsed Marker */
+.student_marker.student_content__hidden {
+  max-width: 90px;
+}
+
+.student_marker.student_content__hidden .student_content {
+  display: none;
+}
+.student_marker.student_content__hidden {
+  transition: max-width 0.5s, transform 0.5s;
+  transform-origin: 50% calc(100% + 8px);
+}
+.student_marker.student_content__hidden:not(
+    :hover,
+    .cmu_marker,
+    #controls_wrapper.add_place + * .own_marker
+  ) {
+  transform: scale(0.5);
+  max-width: 20px;
+}
+
+/* Controls */
+#controls_wrapper {
+  /* overlay w/o conflict */
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+  /* cover */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  /* contents */
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 10px;
+}
+#controls_wrapper.add_place {
+  outline: dashed 4px var(--cmu-color);
+  outline-offset: -4px;
+}
+#controls_wrapper button {
+  /* style */
+  border-radius: 5px;
+  border: solid 2px var(--cmu-color);
+  background-color: var(--cmu-color);
+  color: #fff;
+  font-weight: bold;
+  padding: 10px 20px;
+  /* overlay interact*/
+  pointer-events: all;
+  cursor: pointer;
+}
+
+#controls_wrapper:not(.add_place) .controls_wrapper__edit_only {
+  display: none;
+}
+
+#controls_wrapper button.secondary {
+  background-color: #fff;
+  color: var(--cmu-color);
+}
