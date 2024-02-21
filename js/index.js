@@ -1,30 +1,31 @@
 ("use strict");
 
 console.log(
-  "%c" + "😽ྀིྀི please don't look at this code, thanks 😽ྀིྀི",
+  "%c" + "😽ྀིྀི please don't look at the code, thanks 😽ྀིྀི",
   "text-align:center; background: peachpuff; color: black; padding: 20px 60px; font-family: sans-serif; font-size: 20px; border-radius: 7px;"
 );
 
 // Constants
 const cmuLatLng = { lat: 40.443336, lng: -79.944023 };
-var geocoder;
 
 // Vars: Map & Markers
-var active;
-var map;
+var active,
+  map,
+  geocoder,
+  markers = [];
 // Vars: User
-var user_before;
-var user = {
-  latLng: {},
-  name: localStorage.getItem("userName"),
-  detail: localStorage.getItem("userDetail"),
-  place: null,
-  marker: null,
-};
-var promptedDetails = false;
+var user_before,
+  user = {
+    latLng: {},
+    name: localStorage.getItem("userName"),
+    detail: localStorage.getItem("userDetail"),
+    place: null,
+    marker: null,
+  };
 // Vars: Edit Mode
-var addMode = false;
-var addChanged = false;
+var addMode = false,
+  addChanged = false,
+  promptedDetails = false;
 
 // Buttons Listeners
 $("#edit_name").click(add_name);
@@ -52,12 +53,14 @@ function add_details(require = false) {
   promptedDetails = true;
   if (user.detail === after)
     return after && alert("Detail is already set to " + after) && user.detail;
+  if (user.detail && !after && !confirm("Are you sure you want to remove your detail?"))
+    return user.detail;
   user.detail = after;
   mark_changed(true);
   return user.detail;
 }
 function add_name() {
-  let after = prompt("What's your name?");
+  let after = prompt("What's your name?", user.name || auth.currentUser.displayName || "");
   if (!after) return alert("Please enter a name") && false;
   if (user.name === after) return alert("Name is already set to " + after) && user.name;
   user.name = after;
@@ -131,19 +134,33 @@ async function initMap() {
     content: $('<div class="cmu_marker student_marker">CMU</div>').get(0),
   });
 }
-async function initMarkers() {
+async function initMarkers(newData = null) {
   // Load & setup all other markers
-  console.log("⏬ Loading markers from server");
-  let data = await students.get();
-  console.log("✅ Loaded markers from server");
-  data.forEach((doc) => {
-    let is_user = doc.id === auth.currentUser.uid;
+  let server;
+  if (!newData) {
+    console.log("⏬ Loading markers from server");
+    server = await flattened.get();
+    console.log("✅ Loaded markers from server");
+  }
+
+  // Remove any existing markers
+  if (markers.length) {
+    console.log("📍 %cRemoving all existing markers", "color: orange");
+    markers.forEach(removeMarker);
+    markers = [];
+  }
+
+  users = newData ? newData.data() : server.data();
+
+  // loop through key-value pairs
+  for (let uid in users) {
+    let is_user = uid === auth.currentUser.uid;
     if (is_user) {
       console.log("👤 Found existing user marker from server");
       user = {
-        uid: doc.id,
+        uid: uid,
         ...user,
-        ...doc.data(),
+        ...users[uid],
       };
       user_before = { ...user };
       $("#toggle_place_mode").text("Edit Marker");
@@ -154,16 +171,21 @@ async function initMarkers() {
       is_user
         ? user
         : {
-            uid: doc.id,
-            ...doc.data(),
+            uid: uid,
+            ...users[uid],
           }
     );
-  });
+  }
 
-  console.log("📍 Setup all markers");
+  console.log(`📍 Setup all (${Object.keys(users).length}) markers`);
+
+  if (active) {
+    let marker = markers.find((m) => $(m.content).attr("data-uid") === active);
+    if (marker) toggleMarker(marker);
+  }
 
   // Marker Create Listener
-  setupEditListener(map, geocoder);
+  void newData || setupEditListener(map, geocoder);
 }
 
 function setupMarker(map, obj) {
@@ -174,18 +196,20 @@ function setupMarker(map, obj) {
   }
   // Setup marker
   try {
+    if (!map || !map.data) throw "No map to setup marker on";
     let marker = new google.maps.marker.AdvancedMarkerElement({
       position: obj.latLng,
       map: map,
       content: makeContent(obj.name, obj.detail, obj.place || "Unknown Area", obj.uid),
     });
     obj.marker = marker;
+    markers.push(marker);
     marker.addListener("click", function () {
       toggleMarker(marker);
     });
     return marker;
   } catch (e) {
-    console.log("📍 %cError creating marker from obj", "color: red", obj, e);
+    console.log("📍 %cError creating marker from obj", "color: red", e, obj);
   }
 }
 
@@ -205,15 +229,18 @@ function makeContent(name, detail, location, id) {
   return $(
     `<div class="student_marker student_content__hidden ${
       own ? "own_marker" : ""
-    }"><div class="student_name">${name}</div><div class="student_content"><h2>${
+    }" data-uid="${id}"><div class="student_name">${name}</div><div class="student_content"><h2>${
       name + (own ? " (you)" : "")
     }</h2><p>${location}</p><p>${detail}</p></div></div>`
   ).get(0);
 }
 
 function toggleMarker(marker) {
-  active = marker;
-  $(marker.content).toggleClass("student_content__hidden");
+  let is_active = !$(marker.content)
+    .toggleClass("student_content__hidden")
+    .hasClass("student_content__hidden");
+
+  active = is_active && $(marker.content).attr("data-uid");
   // remove all other
   $(".student_marker").not(marker.content).addClass("student_content__hidden");
 }
@@ -224,6 +251,18 @@ function discard_changes() {
   setupMarker(map, user);
   mark_changed(false);
   console.log("🛑 Discarded changes");
+}
+
+function updateListener() {
+  flattened.onSnapshot((doc) => {
+    console.log("🔄 Data updated");
+    if (addMode)
+      return console.log(
+        "🛑 %cIgnoring update such as to not conflict with edit mode",
+        "color: orange"
+      );
+    initMarkers(doc);
+  });
 }
 
 function setupEditListener(map, geocoder) {

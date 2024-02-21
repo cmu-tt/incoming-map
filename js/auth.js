@@ -24,6 +24,7 @@ async function prepLogin() {
 
   const db = firebase.firestore();
   students = db.collection("students");
+  flattened = db.collection("flattened").doc("data");
 
   auth = firebase.auth();
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -32,6 +33,7 @@ async function prepLogin() {
 
   // Start bg map
   initMap();
+  updateListener();
 
   // Prep for login if needed
   $("#login_btn").click(await login);
@@ -40,6 +42,7 @@ async function prepLogin() {
   async function login() {
     // Use oauth to get user info
     try {
+      console.log("🔑 %cLogging in...", "color: blue");
       await auth.signInWithPopup(provider);
       if (!auth.currentUser) {
         alert("Please login to continue");
