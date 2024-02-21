@@ -17,7 +17,7 @@ async function prepLogin() {
     storageBucket: "cmu-admit.appspot.com",
     messagingSenderId: "663827804233",
     appId: "1:663827804233:web:b467b666555b88c212cf98",
-    // authDomain: "auth.map.cmutt.app",
+    authDomain: "auth.map.cmutt.app",
   };
 
   firebase.initializeApp(config);
