@@ -126,7 +126,9 @@ async function initMap() {
   geocoder = new google.maps.Geocoder();
 
   map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 4,
+    zoom: 2.5,
+    minZoom: 0.75,
+    maxZoom: 14,
     center: cmuLatLng,
     mapId: "cmu-admit-map",
     streetViewControl: false,
